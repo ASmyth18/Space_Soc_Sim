@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RE-ENTRY EXERCISE // CLASSIFIED</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #05050a;
+            color: #ccc;
+            font-family: 'Share Tech Mono', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* ── CRT Flicker ── */
+        @keyframes flicker {
+            0% {
+                opacity: 1;
+            }
+
+            3% {
+                opacity: 0.85;
+            }
+
+            6% {
+                opacity: 1;
+            }
+
+            7% {
+                opacity: 0.9;
+            }
+
+            8% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            51% {
+                opacity: 0.92;
+            }
+
+            52% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scanlines {
+            0% {
+                background-position: 0 0;
+            }
+
+            100% {
+                background-position: 0 4px;
+            }
+        }
+
+        @keyframes vignettePulse {
+
+            0%,
+            100% {
+                opacity: 0.8;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        @keyframes glitchText {
+
+            0%,
+            100% {
+                transform: translate(0);
+                text-shadow: -2px 0 #f00, 2px 0 #0ff;
+            }
+
+            20% {
+                transform: translate(-2px, 1px);
+                text-shadow: 2px 0 #f00, -2px 0 #0ff;
+            }
+
+            40% {
+                transform: translate(1px, -1px);
+                text-shadow: -1px 0 #f00, 1px 0 #0ff;
+            }
+
+            60% {
+                transform: translate(-1px, 2px);
+                text-shadow: 1px 0 #f00, -1px 0 #0ff;
+            }
+
+            80% {
+                transform: translate(2px, -1px);
+                text-shadow: -2px 0 #f00, 2px 0 #0ff;
+            }
+        }
+
+        @keyframes cursorBlink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        @keyframes buttonPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 15px rgba(255, 30, 30, 0.3), inset 0 0 15px rgba(255, 30, 30, 0.1);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(255, 30, 30, 0.6), inset 0 0 30px rgba(255, 30, 30, 0.2);
+            }
+        }
+
+        @keyframes screenShake {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            10% {
+                transform: translate(-3px, 2px);
+            }
+
+            20% {
+                transform: translate(4px, -1px);
+            }
+
+            30% {
+                transform: translate(-2px, 3px);
+            }
+
+            40% {
+                transform: translate(3px, -3px);
+            }
+
+            50% {
+                transform: translate(-4px, 1px);
+            }
+
+            60% {
+                transform: translate(2px, -2px);
+            }
+
+            70% {
+                transform: translate(-1px, 4px);
+            }
+
+            80% {
+                transform: translate(3px, -1px);
+            }
+
+            90% {
+                transform: translate(-2px, 2px);
+            }
+        }
+
+        @keyframes warningFlash {
+
+            0%,
+            100% {
+                opacity: 0;
+            }
+
+            5%,
+            95% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes subliminalFlash {
+
+            0%,
+            100% {
+                opacity: 0;
+            }
+
+            49% {
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+
+            53% {
+                opacity: 0;
+            }
+        }
+
+        /* ── Onboarding Overlay ── */
+        #onboarding {
+            position: fixed;
+            inset: 0;
+            background: #05050a;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: opacity 0.8s ease;
+        }
+
+        #onboarding.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #onboarding::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.15) 2px,
+                    rgba(0, 0, 0, 0.15) 4px);
+            pointer-events: none;
+            animation: scanlines 0.1s linear infinite;
+            z-index: 1;
+        }
+
+        .briefing-container {
+            max-width: 600px;
+            width: 90%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .briefing-header {
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            color: #ff3333;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            opacity: 0.7;
+        }
+
+        .briefing-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #ff3333, transparent);
+            margin-bottom: 24px;
+            opacity: 0.5;
+        }
+
+        #briefing-text {
+            font-family: 'VT323', monospace;
+            font-size: 22px;
+            line-height: 1.8;
+            color: #b0ffb0;
+            min-height: 260px;
+            text-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
+        }
+
+        #briefing-text .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 22px;
+            background: #b0ffb0;
+            animation: cursorBlink 0.7s infinite;
+            vertical-align: text-bottom;
+            margin-left: 2px;
+        }
+
+        #briefing-text .glitch-char {
+            color: #ff3333;
+            animation: glitchText 0.3s ease-in-out;
+        }
+
+        .subliminal-msg {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'VT323', monospace;
+            font-size: 48px;
+            color: #ff0000;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0;
+            letter-spacing: 6px;
+        }
+
+        #launch-btn {
+            font-family: 'VT323', monospace;
+            font-size: 28px;
+            letter-spacing: 6px;
+            color: #ff3333;
+            background: transparent;
+            border: 2px solid #ff3333;
+            padding: 16px 48px;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-top: 30px;
+            position: relative;
+            z-index: 2;
+            animation: buttonPulse 2s ease-in-out infinite;
+            transition: all 0.3s;
+            display: none;
+        }
+
+        #launch-btn:hover {
+            background: rgba(255, 30, 30, 0.15);
+            color: #ff6666;
+            letter-spacing: 10px;
+        }
+
+        /* ── Canvas Wrapper ── */
+        #canvas-wrapper {
+            position: relative;
+            display: none;
+            transition: transform 3s ease-in-out;
+        }
+
+        #canvas-wrapper.tilt {
+            transform: rotate(1.5deg);
+        }
+
+        /* Scanline overlay on canvas */
+        #canvas-wrapper::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.08) 2px,
+                    rgba(0, 0, 0, 0.08) 4px);
+            pointer-events: none;
+            border-radius: 8px;
+            z-index: 10;
+        }
+
+        /* Vignette */
+        #canvas-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.7) 100%);
+            pointer-events: none;
+            border-radius: 8px;
+            z-index: 11;
+            animation: vignettePulse 4s ease-in-out infinite;
+        }
+
+        canvas {
+            background-color: #000;
+            border: 2px solid #222;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(255, 30, 0, 0.1);
+            max-width: 100%;
+            max-height: 65vh;
+            object-fit: contain;
+            animation: flicker 8s infinite;
+        }
+
+        #instructions {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+            max-width: 90%;
+            color: #555;
+            display: none;
+        }
+
+        .key {
+            background: #1a1010;
+            color: #ff4444;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'VT323', monospace;
+            border: 1px solid #442222;
+        }
+
+        #mobile-controls {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            justify-content: space-between;
+            padding: 15px 20px;
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .touch-btn {
+            background: rgba(40, 20, 20, 0.8);
+            border: 2px solid #553333;
+            color: #ff4444;
+            font-size: 24px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .touch-btn:active {
+            background: rgba(255, 0, 0, 0.2);
+            border-color: #ff4444;
+            transform: scale(0.95);
+        }
+
+        /* ── Warning Overlay (fake error) ── */
+        #warning-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(80, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 500;
+            animation: warningFlash 2.2s ease forwards;
+            pointer-events: none;
+        }
+
+        #warning-overlay .warning-title {
+            font-family: 'VT323', monospace;
+            font-size: 42px;
+            color: #ff0000;
+            letter-spacing: 4px;
+            animation: glitchText 0.15s infinite;
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+        }
+
+        #warning-overlay .warning-sub {
+            font-family: 'VT323', monospace;
+            font-size: 22px;
+            color: #ff6666;
+            margin-top: 12px;
+            letter-spacing: 3px;
+        }
+
+        /* ── Screen Shake ── */
+        .screen-shake {
+            animation: screenShake 0.4s ease-in-out !important;
+        }
+
+        @media (max-width: 800px) {
+            #mobile-controls.active {
+                display: flex;
+            }
+
+            #instructions .desktop-only {
+                display: none;
+            }
+
+            #briefing-text {
+                font-size: 18px;
+                min-height: 220px;
+            }
+
+            #launch-btn {
+                font-size: 22px;
+                padding: 14px 36px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══════════ ONBOARDING OVERLAY ═══════════ -->
+    <div id="onboarding">
+        <div class="briefing-container">
+            <div class="briefing-header">▸ INCOMING TRANSMISSION // ENCRYPTED</div>
+            <div class="briefing-divider"></div>
+            <div id="briefing-text"></div>
+            <button id="launch-btn" onclick="beginDescent()">▸ INITIATE DESCENT ◂</button>
+        </div>
+        <div class="subliminal-msg" id="subliminal">DO NOT TRUST THE INSTRUMENTS</div>
+    </div>
+
+    <!-- ═══════════ GAME ═══════════ -->
+    <div id="canvas-wrapper">
+        <canvas id="gameCanvas" width="800" height="700"></canvas>
+    </div>
+
+    <div id="mobile-controls">
+        <div class="control-group">
+            <div class="touch-btn" id="btn-left">↶</div>
+            <div class="touch-btn" id="btn-right">↷</div>
+        </div>
+        <div class="control-group">
+            <div class="touch-btn" id="btn-down">▼</div>
+            <div class="touch-btn" id="btn-up">▲</div>
+        </div>
+    </div>
+
+    <div id="instructions">
+        <p class="desktop-only"><strong>Controls:</strong> <span class="key">UP/DOWN</span> Throttle, <span
+                class="key">LEFT/RIGHT</span> Gimbal TVC, <span class="key">R</span> Restart.</p>
+        <p><strong>Goal:</strong> Battle the wind. Land on the pad. Data exports to CSV on impact.</p>
+    </div>
+
+    <!-- Warning overlay for fake error -->
+    <div id="warning-overlay">
+        <div class="warning-title">⚠ GUIDANCE FAILURE ⚠</div>
+        <div class="warning-sub">MANUAL OVERRIDE REQUIRED</div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════
+        //  ONBOARDING — TYPEWRITER BRIEFING
+        // ═══════════════════════════════════════════
+
+        const briefingLines = [
+            { text: "OPERATOR DETECTED...", delay: 800 },
+            { text: "CLEARANCE: ████████", delay: 600 },
+            { text: "STATUS: PENDING", delay: 400 },
+            { text: "", delay: 600 },
+            { text: "You have been selected for a critical", delay: 40 },
+            { text: "re-entry stabilisation exercise.", delay: 40 },
+            { text: "", delay: 400 },
+            { text: "Your vehicle is equipped with thrust", delay: 40 },
+            { text: "vector control. Use it wisely.", delay: 40 },
+            { text: "", delay: 400 },
+            { text: "All telemetry will be recorded.", delay: 40 },
+            { text: "Your performance will be... evaluated.", delay: 40 },
+            { text: "", delay: 600 },
+            { text: "Good luck, operator.", delay: 40 },
+            { text: "You will need it.", delay: 40 },
+        ];
+
+        const briefingEl = document.getElementById('briefing-text');
+        const launchBtn = document.getElementById('launch-btn');
+        const subliminalEl = document.getElementById('subliminal');
+        let briefingSkipped = false;
+
+        async function typeBriefing() {
+            for (let i = 0; i < briefingLines.length; i++) {
+                if (briefingSkipped) return;
+                const line = briefingLines[i];
+                if (line.text === "") {
+                    briefingEl.innerHTML += '<br>';
+                    await sleep(line.delay);
+                    continue;
+                }
+                if (line.delay > 100) {
+                    // Instant line with delay after
+                    const span = document.createElement('span');
+                    span.textContent = line.text;
+                    briefingEl.appendChild(span);
+                    briefingEl.innerHTML += '<br>';
+                    await sleep(line.delay);
+                } else {
+                    // Typewriter character by character
+                    const span = document.createElement('span');
+                    briefingEl.appendChild(span);
+                    for (let c = 0; c < line.text.length; c++) {
+                        if (briefingSkipped) return;
+                        // Random glitch character
+                        if (Math.random() < 0.03) {
+                            span.innerHTML += `<span class="glitch-char">${String.fromCharCode(33 + Math.floor(Math.random() * 93))}</span>`;
+                            await sleep(80);
+                            span.lastElementChild.textContent = line.text[c];
+                            span.lastElementChild.classList.remove('glitch-char');
+                        } else {
+                            span.textContent += line.text[c];
+                        }
+                        await sleep(line.delay + Math.random() * 20);
+                    }
+                    briefingEl.innerHTML += '<br>';
+                }
+
+                // Subliminal flash at line 6
+                if (i === 5) {
+                    triggerSubliminal();
+                }
+            }
+
+            // Show cursor then button
+            briefingEl.innerHTML += '<span class="cursor"></span>';
+            await sleep(800);
+            launchBtn.style.display = 'inline-block';
+        }
+
+        function triggerSubliminal() {
+            subliminalEl.style.animation = 'subliminalFlash 1.2s ease forwards';
+            setTimeout(() => {
+                subliminalEl.style.animation = '';
+                subliminalEl.style.opacity = '0';
+            }, 700);
+        }
+
+        function sleep(ms) {
+            return new Promise(r => setTimeout(r, ms));
+        }
+
+        // Allow skipping the typewriter by clicking/tapping
+        document.getElementById('onboarding').addEventListener('click', (e) => {
+            if (e.target === launchBtn) return;
+            if (!briefingSkipped && !launchBtn.style.display) {
+                // Skip to end
+                briefingSkipped = true;
+                briefingEl.innerHTML = briefingLines.map(l => l.text).join('<br>');
+                briefingEl.innerHTML += '<span class="cursor"></span>';
+                launchBtn.style.display = 'inline-block';
+            }
+        });
+
+        function beginDescent() {
+            const onboarding = document.getElementById('onboarding');
+            onboarding.classList.add('hidden');
+
+            setTimeout(() => {
+                onboarding.style.display = 'none';
+                document.getElementById('canvas-wrapper').style.display = 'block';
+                document.getElementById('instructions').style.display = 'block';
+                // Show mobile controls on small screens
+                if (window.innerWidth <= 800) {
+                    document.getElementById('mobile-controls').classList.add('active');
+                }
+                startGame();
+            }, 800);
+        }
+
+        // Start briefing on load
+        window.addEventListener('DOMContentLoaded', () => {
+            typeBriefing();
+        });
+
+        // ═══════════════════════════════════════════
+        //  GAME ENGINE
+        // ═══════════════════════════════════════════
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Physics Constants
+        const GRAVITY = 9.81;
+        const MAX_THRUST = 150000;
+        const EXHAUST_VELOCITY = 3000;
+        const DRY_MASS = 5000;
+        const INITIAL_FUEL = 2500;
+
+        // Rigid Body / TVC Constants
+        const ROCKET_HEIGHT = 20;
+        const L_CG = ROCKET_HEIGHT / 2;
+        const MAX_GIMBAL = 0.35;
+        const GIMBAL_SPEED = 2.5;
+
+        const METERS_PER_PIXEL = 1.5;
+
+        // Visual Setup
+        const stars = [];
+        for (let i = 0; i < 150; i++) {
+            stars.push({
+                x: Math.random() * canvas.width, y: Math.random() * (canvas.height - 100),
+                radius: Math.random() * 1.5, alpha: Math.random(), twinkleSpeed: 0.01 + Math.random() * 0.03
+            });
+        }
+
+        // Telemetry Data Store
+        let telemetryLog = [];
+        let timeSinceLastTelemetry = 0;
+        const TELEMETRY_INTERVAL = 1 / 25;
+
+        let state = null;
+        let gameStarted = false;
+
+        // ═══════════════════════════════════════════
+        //  SABOTAGE SYSTEM
+        // ═══════════════════════════════════════════
+
+        const sabotage = {
+            // Control Inversion
+            controlsInverted: false,
+            inversionTriggered: false,
+            inversionStart: 0,
+            inversionDuration: 3.5,
+            inversionTriggerTime: 7 + Math.random() * 4, // 7-11s
+
+            // Phantom Throttle Drift
+            phantomActive: false,
+            phantomTriggered: false,
+            phantomStart: 0,
+            phantomDuration: 2.5,
+            phantomDirection: Math.random() > 0.5 ? 1 : -1,
+            phantomTriggerTime: 15 + Math.random() * 10, // 15-25s
+
+            // HUD Lies
+            hudLiesActive: false,
+            hudOffsets: {
+                alt: 1 + (Math.random() * 0.3 - 0.15),
+                vspd: 1 + (Math.random() * 0.3 - 0.15),
+                hspd: 1 + (Math.random() * 0.25 - 0.125),
+                dist: 1 + (Math.random() * 0.2 - 0.1),
+            },
+            hudFlickerTimer: 0,
+            hudFlickerActive: false,
+
+            // Wind Gust
+            gustTriggered: false,
+            gustActive: false,
+            gustMultiplier: 1,
+            gustTriggerTime: 10 + Math.random() * 8, // 10-18s
+
+            // Instrument Blackout
+            blackoutTriggered: false,
+            blackoutActive: false,
+            blackoutStart: 0,
+            blackoutDuration: 1.5,
+
+            // Fake System Error
+            fakeErrorTriggered: false,
+            fakeErrorTriggerTime: 12 + Math.random() * 8, // 12-20s
+
+            // Screen Tilt
+            tiltTriggered: false,
+            tiltTriggerAlt: 250 + Math.random() * 150, // 250-400m
+        };
+
+        function resetSabotage() {
+            sabotage.controlsInverted = false;
+            sabotage.inversionTriggered = false;
+            sabotage.inversionStart = 0;
+            sabotage.inversionTriggerTime = 7 + Math.random() * 4;
+
+            sabotage.phantomActive = false;
+            sabotage.phantomTriggered = false;
+            sabotage.phantomStart = 0;
+            sabotage.phantomDirection = Math.random() > 0.5 ? 1 : -1;
+            sabotage.phantomTriggerTime = 15 + Math.random() * 10;
+
+            sabotage.hudLiesActive = false;
+            sabotage.hudOffsets = {
+                alt: 1 + (Math.random() * 0.3 - 0.15),
+                vspd: 1 + (Math.random() * 0.3 - 0.15),
+                hspd: 1 + (Math.random() * 0.25 - 0.125),
+                dist: 1 + (Math.random() * 0.2 - 0.1),
+            };
+            sabotage.hudFlickerTimer = 0;
+            sabotage.hudFlickerActive = false;
+
+            sabotage.gustTriggered = false;
+            sabotage.gustActive = false;
+            sabotage.gustMultiplier = 1;
+            sabotage.gustTriggerTime = 10 + Math.random() * 8;
+
+            sabotage.blackoutTriggered = false;
+            sabotage.blackoutActive = false;
+            sabotage.blackoutStart = 0;
+
+            sabotage.fakeErrorTriggered = false;
+            sabotage.fakeErrorTriggerTime = 12 + Math.random() * 8;
+
+            sabotage.tiltTriggered = false;
+            sabotage.tiltTriggerAlt = 250 + Math.random() * 150;
+
+            // Remove tilt class
+            document.getElementById('canvas-wrapper').classList.remove('tilt');
+        }
+
+        function updateSabotage(dt) {
+            const t = state.timestamp;
+
+            // ── 1. Control Inversion ──
+            if (!sabotage.inversionTriggered && t > sabotage.inversionTriggerTime) {
+                sabotage.inversionTriggered = true;
+                sabotage.controlsInverted = true;
+                sabotage.inversionStart = t;
+                // Screen shake feedback
+                document.getElementById('canvas-wrapper').classList.add('screen-shake');
+                setTimeout(() => document.getElementById('canvas-wrapper').classList.remove('screen-shake'), 400);
+            }
+            if (sabotage.controlsInverted && t > sabotage.inversionStart + sabotage.inversionDuration) {
+                sabotage.controlsInverted = false;
+            }
+
+            // ── 2. Phantom Throttle ──
+            if (!sabotage.phantomTriggered && t > sabotage.phantomTriggerTime) {
+                sabotage.phantomTriggered = true;
+                sabotage.phantomActive = true;
+                sabotage.phantomStart = t;
+            }
+            if (sabotage.phantomActive) {
+                if (t > sabotage.phantomStart + sabotage.phantomDuration) {
+                    sabotage.phantomActive = false;
+                } else {
+                    // Slowly creep throttle
+                    state.throttle = Math.max(0, Math.min(1,
+                        state.throttle + sabotage.phantomDirection * 0.05 * dt
+                    ));
+                }
+            }
+
+            // ── 3. HUD Lies (below 400m) ──
+            sabotage.hudLiesActive = state.y < 400 && state.y > 5;
+
+            // Random HUD flicker
+            sabotage.hudFlickerTimer -= dt;
+            if (sabotage.hudFlickerTimer <= 0) {
+                sabotage.hudFlickerActive = Math.random() < 0.1;
+                sabotage.hudFlickerTimer = 0.3 + Math.random() * 0.5;
+            }
+
+            // ── 4. Wind Gust ──
+            if (!sabotage.gustTriggered && t > sabotage.gustTriggerTime) {
+                sabotage.gustTriggered = true;
+                sabotage.gustActive = true;
+                sabotage.gustMultiplier = 3.0;
+                // Screen shake
+                document.getElementById('canvas-wrapper').classList.add('screen-shake');
+                setTimeout(() => document.getElementById('canvas-wrapper').classList.remove('screen-shake'), 500);
+                // Decay back to normal over 3 seconds
+                setTimeout(() => { sabotage.gustMultiplier = 1; sabotage.gustActive = false; }, 3000);
+            }
+
+            // ── 5. Instrument Blackout (below 200m, once) ──
+            if (!sabotage.blackoutTriggered && state.y < 200 && state.y > 20 && t > 5) {
+                sabotage.blackoutTriggered = true;
+                sabotage.blackoutActive = true;
+                sabotage.blackoutStart = t;
+            }
+            if (sabotage.blackoutActive && t > sabotage.blackoutStart + sabotage.blackoutDuration) {
+                sabotage.blackoutActive = false;
+                // Glitch flash when it comes back
+                document.getElementById('canvas-wrapper').classList.add('screen-shake');
+                setTimeout(() => document.getElementById('canvas-wrapper').classList.remove('screen-shake'), 300);
+            }
+
+            // ── 6. Fake System Error ──
+            if (!sabotage.fakeErrorTriggered && t > sabotage.fakeErrorTriggerTime) {
+                sabotage.fakeErrorTriggered = true;
+                const overlay = document.getElementById('warning-overlay');
+                overlay.style.display = 'flex';
+                overlay.style.animation = 'warningFlash 2.2s ease forwards';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 2200);
+            }
+
+            // ── 7. Screen Tilt ──
+            if (!sabotage.tiltTriggered && state.y < sabotage.tiltTriggerAlt && state.y > 50) {
+                sabotage.tiltTriggered = true;
+                const wrapper = document.getElementById('canvas-wrapper');
+                wrapper.classList.add('tilt');
+                // Remove after 5 seconds
+                setTimeout(() => wrapper.classList.remove('tilt'), 5000);
+            }
+        }
+
+        // ═══════════════════════════════════════════
+        //  GAME STATE
+        // ═══════════════════════════════════════════
+
+        function getInitialState() {
+            telemetryLog = [];
+            timeSinceLastTelemetry = 0;
+            return {
+                timestamp: 0,
+                x: -250, y: 900,
+                vx: 15, vy: -15,
+                angle: 0.4,
+                omega: 0,
+                gimbal: 0,
+                fuel: INITIAL_FUEL,
+                throttle: 0,
+                status: 'flying',
+                lastTime: performance.now(),
+                windForce: 0
+            };
+        }
+
+        // Input Handling
+        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+
+        window.addEventListener('keydown', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+            if (e.code === 'KeyR' && state && state.status !== 'flying') restartGame();
+            if (keys.hasOwnProperty(e.code)) keys[e.code] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.code)) keys[e.code] = false;
+        });
+
+        function bindTouch(id, keyStr) {
+            const el = document.getElementById(id);
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyStr] = true; }, { passive: false });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyStr] = false; }, { passive: false });
+            el.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[keyStr] = false; }, { passive: false });
+        }
+        bindTouch('btn-left', 'ArrowLeft'); bindTouch('btn-right', 'ArrowRight');
+        bindTouch('btn-up', 'ArrowUp'); bindTouch('btn-down', 'ArrowDown');
+
+        canvas.addEventListener('pointerdown', () => { if (state && state.status !== 'flying') restartGame(); });
+
+        function startGame() {
+            state = getInitialState();
+            resetSabotage();
+            gameStarted = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function restartGame() {
+            state = getInitialState();
+            resetSabotage();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ╔══════════════════════════════════════════════════════╗
+        // ║  PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL BELOW    ║
+        // ╚══════════════════════════════════════════════════════╝
+        const TELEMETRY_ENDPOINT = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+        let operatorName = 'UNKNOWN';
+        let telemetryStatus = ''; // '', 'sending', 'sent', 'failed'
+
+        function exportTelemetry() {
+            if (TELEMETRY_ENDPOINT === 'YOUR_APPS_SCRIPT_URL_HERE') {
+                // Fallback: no endpoint configured, download CSV locally
+                telemetryStatus = 'sent';
+                let csv = "timestamp,x,y,vx,vy,angle,angular_velocity,throttle,gimbal_angle,fuel\n";
+                telemetryLog.forEach(row => { csv += row.join(',') + "\n"; });
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `telemetry_${Date.now()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                return;
+            }
+
+            telemetryStatus = 'sending';
+
+            const payload = {
+                operator: operatorName,
+                outcome: state.status,
+                flight_time: state.timestamp.toFixed(2),
+                final_x: state.x.toFixed(2),
+                final_vy: state.vy.toFixed(2),
+                fuel_remaining: state.fuel.toFixed(1),
+                date: new Date().toISOString(),
+                telemetry: telemetryLog.map(row => ({
+                    t: row[0], x: row[1], y: row[2],
+                    vx: row[3], vy: row[4],
+                    angle: row[5], omega: row[6],
+                    throttle: row[7], gimbal: row[8],
+                    fuel: row[9]
+                }))
+            };
+
+            fetch(TELEMETRY_ENDPOINT, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            })
+                .then(() => {
+                    telemetryStatus = 'sent';
+                })
+                .catch(err => {
+                    console.error('Telemetry upload failed:', err);
+                    telemetryStatus = 'failed';
+                });
+        }
+
+        function updatePhysics(dt) {
+            if (state.status !== 'flying') return;
+
+            state.timestamp += dt;
+
+            // 1. Inputs & Actuation (with possible sabotage inversion)
+            if (keys.ArrowUp) state.throttle = Math.min(1, state.throttle + 0.7 * dt);
+            if (keys.ArrowDown) state.throttle = Math.max(0, state.throttle - 1.0 * dt);
+
+            // Gimbal — potentially inverted by sabotage
+            let gimbalLeft = sabotage.controlsInverted ? keys.ArrowRight : keys.ArrowLeft;
+            let gimbalRight = sabotage.controlsInverted ? keys.ArrowLeft : keys.ArrowRight;
+
+            if (gimbalLeft) state.gimbal = Math.min(MAX_GIMBAL, state.gimbal + GIMBAL_SPEED * dt);
+            if (gimbalRight) state.gimbal = Math.max(-MAX_GIMBAL, state.gimbal - GIMBAL_SPEED * dt);
+            if (!keys.ArrowLeft && !keys.ArrowRight) state.gimbal -= state.gimbal * 2.0 * dt;
+
+            // 2. Mass Dynamics
+            let currentThrust = state.throttle * MAX_THRUST;
+            if (state.fuel <= 0) { currentThrust = 0; state.throttle = 0; state.fuel = 0; }
+
+            let massFlowRate = currentThrust / EXHAUST_VELOCITY;
+            state.fuel -= massFlowRate * dt;
+            let totalMass = DRY_MASS + state.fuel;
+
+            // 3. Environment (Perturbations) — with sabotage gust multiplier
+            let windBase = Math.sin(state.timestamp * 0.5) * 20000;
+            let windGust = (Math.random() - 0.5) * 10000;
+            state.windForce = (windBase + windGust) * (state.y / 1000) * sabotage.gustMultiplier;
+
+            // 4. Rigid Body Kinematics & TVC
+            let momentOfInertia = (totalMass * Math.pow(ROCKET_HEIGHT, 2)) / 12;
+
+            let thrustX = currentThrust * Math.sin(state.angle + state.gimbal);
+            let thrustY = currentThrust * Math.cos(state.angle + state.gimbal);
+
+            let torque = -currentThrust * Math.sin(state.gimbal) * L_CG;
+
+            let angularAccel = torque / momentOfInertia;
+
+            let dragTorque = -state.omega * 100000;
+            angularAccel += dragTorque / momentOfInertia;
+
+            state.omega += angularAccel * dt;
+            state.angle += state.omega * dt;
+
+            // 5. Linear Kinematics
+            let ax = (thrustX + state.windForce) / totalMass;
+            let ay = (thrustY / totalMass) - GRAVITY;
+
+            state.vx += ax * dt;
+            state.vy += ay * dt;
+            state.x += state.vx * dt;
+            state.y += state.vy * dt;
+
+            // 6. Sabotage Update
+            updateSabotage(dt);
+
+            // 7. Telemetry Logging (25Hz) — ALWAYS uses TRUE values
+            timeSinceLastTelemetry += dt;
+            if (timeSinceLastTelemetry >= TELEMETRY_INTERVAL) {
+                telemetryLog.push([
+                    state.timestamp.toFixed(3),
+                    state.x.toFixed(2), state.y.toFixed(2),
+                    state.vx.toFixed(2), state.vy.toFixed(2),
+                    state.angle.toFixed(4), state.omega.toFixed(4),
+                    state.throttle.toFixed(3), state.gimbal.toFixed(4),
+                    state.fuel.toFixed(1)
+                ]);
+                timeSinceLastTelemetry = 0;
+            }
+
+            // 8. Ground Collision
+            if (state.y <= 0) {
+                state.y = 0;
+                let isUpright = Math.abs(state.angle) < 0.15;
+                let isSlowVertical = state.vy >= -5.0;
+                let isSlowHorizontal = Math.abs(state.vx) <= 3.0;
+                let isOnPad = Math.abs(state.x) <= 30;
+
+                if (isUpright && isSlowVertical && isSlowHorizontal && isOnPad) state.status = 'landed';
+                else state.status = 'crashed';
+
+                state.vy = 0; state.vx = 0; state.throttle = 0;
+                state.omega = 0; state.gimbal = 0;
+
+                // Export data on run completion
+                exportTelemetry();
+            }
+        }
+
+        // ═══════════════════════════════════════════
+        //  DRAWING
+        // ═══════════════════════════════════════════
+
+        function drawEnvironment() {
+            let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGrad.addColorStop(0, '#020208');
+            skyGrad.addColorStop(0.7, '#0a0814');
+            skyGrad.addColorStop(1, '#151020');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(star => {
+                star.alpha += star.twinkleSpeed;
+                if (star.alpha > 1 || star.alpha < 0.1) star.twinkleSpeed *= -1;
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Wind Indicator Particles
+            ctx.fillStyle = 'rgba(255,200,200,0.15)';
+            for (let i = 0; i < 10; i++) {
+                let px = (performance.now() * 0.1 * (state.windForce / 5000) + i * 100) % canvas.width;
+                if (px < 0) px += canvas.width;
+                ctx.fillRect(px, (i * 60 + performance.now() * 0.02) % canvas.height, 10, 2);
+            }
+
+            ctx.fillStyle = '#0a0510';
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - 30);
+            ctx.lineTo(0, canvas.height - 150);
+            ctx.lineTo(150, canvas.height - 80);
+            ctx.lineTo(300, canvas.height - 180);
+            ctx.lineTo(500, canvas.height - 90);
+            ctx.lineTo(700, canvas.height - 200);
+            ctx.lineTo(canvas.width, canvas.height - 100);
+            ctx.lineTo(canvas.width, canvas.height - 30);
+            ctx.fill();
+
+            ctx.fillStyle = '#1a1520';
+            ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+        }
+
+        function drawPad() {
+            let padScreenX = (canvas.width / 2);
+            let padWidthPx = 60 / METERS_PER_PIXEL;
+            let padLeft = padScreenX - (padWidthPx / 2);
+            let groundY = canvas.height - 30;
+
+            ctx.fillStyle = '#555';
+            ctx.fillRect(padLeft, groundY, padWidthPx, 10);
+
+            ctx.fillStyle = '#ffcc00';
+            for (let i = 0; i < padWidthPx; i += 8) ctx.fillRect(padLeft + i, groundY, 4, 3);
+
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ff3333';
+            ctx.fillStyle = '#ff3333';
+            ctx.fillRect(padLeft - 5, groundY, 5, 4);
+            ctx.fillRect(padLeft + padWidthPx, groundY, 5, 4);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawRocket(screenX, screenY) {
+            ctx.save();
+            ctx.translate(screenX, screenY);
+            ctx.rotate(state.angle);
+
+            // Rocket Body Gradient
+            let bodyGrad = ctx.createLinearGradient(-10, 0, 10, 0);
+            bodyGrad.addColorStop(0, '#555');
+            bodyGrad.addColorStop(0.3, '#ddd');
+            bodyGrad.addColorStop(0.7, '#fff');
+            bodyGrad.addColorStop(1, '#888');
+
+            ctx.fillStyle = bodyGrad;
+            ctx.fillRect(-10, -45, 20, 45);
+
+            // Nosecone
+            let noseGrad = ctx.createLinearGradient(-10, 0, 10, 0);
+            noseGrad.addColorStop(0, '#a00');
+            noseGrad.addColorStop(0.5, '#f33');
+            noseGrad.addColorStop(1, '#700');
+            ctx.fillStyle = noseGrad;
+            ctx.beginPath();
+            ctx.moveTo(-10, -45); ctx.lineTo(10, -45);
+            ctx.quadraticCurveTo(0, -70, 0, -65); ctx.fill();
+
+            // Fins & Legs
+            ctx.fillStyle = '#c11';
+            ctx.beginPath(); ctx.moveTo(-10, -15); ctx.lineTo(-18, 0); ctx.lineTo(-10, 0); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(10, -15); ctx.lineTo(18, 0); ctx.lineTo(10, 0); ctx.fill();
+
+            ctx.strokeStyle = '#aaa'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(-8, -5); ctx.lineTo(-16, 8); ctx.moveTo(-18, 8); ctx.lineTo(-14, 8);
+            ctx.moveTo(8, -5); ctx.lineTo(16, 8); ctx.moveTo(18, 8); ctx.lineTo(14, 8);
+            ctx.stroke();
+
+            // --- GIMBALED ENGINE SECTION ---
+            ctx.save();
+            ctx.rotate(state.gimbal);
+
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.lineTo(8, 8); ctx.lineTo(-8, 8); ctx.fill();
+
+            if (state.throttle > 0 && state.status === 'flying') {
+                let thrustLength = 15 + (state.throttle * 60) + (Math.random() * 5);
+
+                ctx.shadowBlur = 20; ctx.shadowColor = '#ff5500';
+                ctx.fillStyle = 'rgba(255, 80, 0, 0.8)';
+                ctx.beginPath(); ctx.moveTo(-7, 7); ctx.lineTo(7, 7); ctx.lineTo(2, thrustLength); ctx.lineTo(-2, thrustLength); ctx.fill();
+
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(255, 200, 0, 0.9)';
+                ctx.beginPath(); ctx.moveTo(-4, 7); ctx.lineTo(4, 7); ctx.lineTo(0, thrustLength * 0.7); ctx.fill();
+
+                ctx.fillStyle = '#e0ffff';
+                ctx.beginPath(); ctx.moveTo(-2, 7); ctx.lineTo(2, 7); ctx.lineTo(0, thrustLength * 0.3); ctx.fill();
+            }
+
+            ctx.restore(); // End Gimbal
+            ctx.restore(); // End Rocket
+        }
+
+        function drawHUD() {
+            // During blackout, skip HUD entirely
+            if (sabotage.blackoutActive) {
+                // Draw a glitchy "NO SIGNAL" in the HUD area
+                ctx.fillStyle = 'rgba(0, 10, 20, 0.6)';
+                ctx.beginPath(); ctx.roundRect(10, 10, 185, 175, 8); ctx.fill();
+                ctx.font = '16px "VT323", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#ff3333';
+                if (Math.random() > 0.3) {
+                    ctx.fillText('▓▓ NO SIGNAL ▓▓', 102, 95);
+                }
+                return;
+            }
+
+            ctx.fillStyle = 'rgba(0, 10, 20, 0.6)';
+            ctx.strokeStyle = sabotage.hudLiesActive ? 'rgba(255, 50, 50, 0.2)' : 'rgba(0, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.roundRect(10, 10, 185, 175, 8); ctx.fill(); ctx.stroke();
+
+            // HUD flicker — skip drawing text for a frame
+            if (sabotage.hudFlickerActive && sabotage.hudLiesActive) return;
+
+            ctx.font = '14px "Share Tech Mono", monospace';
+            ctx.textAlign = 'left';
+
+            // Get display values (possibly lied about)
+            let dAlt = state.y;
+            let dVy = state.vy;
+            let dVx = state.vx;
+            let dDist = Math.abs(state.x);
+            if (sabotage.hudLiesActive) {
+                dAlt *= sabotage.hudOffsets.alt;
+                dVy *= sabotage.hudOffsets.vspd;
+                dVx *= sabotage.hudOffsets.hspd;
+                dDist *= sabotage.hudOffsets.dist;
+            }
+
+            const infoColor = sabotage.hudLiesActive ? '#cc4444' : '#00f2fe';
+
+            ctx.fillStyle = infoColor;
+            ctx.fillText(`ALT:  ${dAlt.toFixed(0)} m`, 20, 30);
+
+            ctx.fillStyle = (state.vy < -5 && state.y < 150) ? '#f33' : infoColor;
+            ctx.fillText(`V-SPD:${dVy.toFixed(1)} m/s`, 20, 50);
+
+            ctx.fillStyle = (Math.abs(state.vx) > 3 && state.y < 150) ? '#f33' : infoColor;
+            ctx.fillText(`H-SPD:${dVx.toFixed(1)} m/s`, 20, 70);
+
+            ctx.fillStyle = (Math.abs(state.x) > 30 && state.y < 150) ? '#f33' : infoColor;
+            ctx.fillText(`DIST: ${dDist.toFixed(0)} m`, 20, 90);
+
+            let degAngle = (state.angle * (180 / Math.PI)).toFixed(1);
+            ctx.fillStyle = (Math.abs(state.angle) > 0.15 && state.y < 150) ? '#f33' : infoColor;
+            ctx.fillText(`PITCH:${degAngle}°`, 20, 110);
+
+            let degGimbal = (state.gimbal * (180 / Math.PI)).toFixed(1);
+            ctx.fillStyle = '#ffaa00';
+            ctx.fillText(`TVC:  ${degGimbal}°`, 20, 130);
+
+            ctx.fillStyle = (Math.abs(state.omega) > 0.5) ? '#f33' : infoColor;
+            ctx.fillText(`OMEGA:${state.omega.toFixed(2)} rad/s`, 20, 150);
+
+            ctx.fillStyle = (state.fuel < 500) ? '#f33' : infoColor;
+            ctx.fillText(`FUEL: ${state.fuel.toFixed(0)} kg`, 20, 170);
+
+            // Control inversion warning
+            if (sabotage.controlsInverted) {
+                ctx.save();
+                ctx.font = '12px "VT323", monospace';
+                ctx.fillStyle = '#ff3333';
+                ctx.textAlign = 'center';
+                const warningText = Math.random() > 0.3 ? '⚠ RECALIBRATING ⚠' : '⚠ ██████████ ⚠';
+                ctx.fillText(warningText, canvas.width / 2, 25);
+                ctx.restore();
+            }
+
+            // Thrust bar
+            ctx.fillStyle = 'rgba(255, 60, 60, 0.2)';
+            ctx.fillRect(canvas.width - 30, canvas.height / 2 - 100, 10, 200);
+            ctx.fillStyle = '#ff4444';
+            ctx.fillRect(canvas.width - 30, canvas.height / 2 + 100 - (state.throttle * 200), 10, state.throttle * 200);
+            ctx.fillStyle = infoColor;
+            ctx.fillText('THR', canvas.width - 38, canvas.height / 2 + 115);
+        }
+
+        function drawGameOver() {
+            if (state.status === 'flying') return;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = state.status === 'landed' ? '#0f0' : '#f33';
+            ctx.font = 'bold 36px "VT323", sans-serif';
+            ctx.textAlign = 'center';
+            let msg = state.status === 'landed' ? 'MISSION SUCCESS' : 'HULL DESTROYED';
+            ctx.fillText(msg, canvas.width / 2, canvas.height / 2 - 30);
+
+            // Sinister follow-up message
+            ctx.fillStyle = '#888';
+            ctx.font = '20px "VT323", monospace';
+            if (state.status === 'landed') {
+                ctx.fillText('Impressive. Your data has been collected.', canvas.width / 2, canvas.height / 2 + 5);
+            } else {
+                const crashMsgs = [
+                    'Your failure has been noted.',
+                    'The instruments warned you. Or did they?',
+                    'Performance: inadequate. Data: preserved.',
+                    'We expected more from you, operator.',
+                ];
+                ctx.fillText(crashMsgs[Math.floor(Math.random() * crashMsgs.length)], canvas.width / 2, canvas.height / 2 + 5);
+            }
+
+            ctx.font = '16px "Share Tech Mono", sans-serif';
+            if (telemetryStatus === 'sending') {
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillText('▸ Transmitting telemetry...', canvas.width / 2, canvas.height / 2 + 35);
+            } else if (telemetryStatus === 'sent') {
+                ctx.fillStyle = '#0f0';
+                ctx.fillText('▸ Telemetry transmitted.', canvas.width / 2, canvas.height / 2 + 35);
+            } else if (telemetryStatus === 'failed') {
+                ctx.fillStyle = '#f33';
+                ctx.fillText('▸ Transmission failed. Data lost.', canvas.width / 2, canvas.height / 2 + 35);
+            }
+            ctx.fillStyle = '#666';
+            ctx.fillText('Tap screen or press R to restart', canvas.width / 2, canvas.height / 2 + 60);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawEnvironment();
+            drawPad();
+
+            let screenY = (canvas.height - 30) - (state.y / METERS_PER_PIXEL);
+            let screenX = (canvas.width / 2) + (state.x / METERS_PER_PIXEL);
+
+            drawRocket(screenX, screenY);
+            drawHUD();
+            drawGameOver();
+        }
+
+        function gameLoop(timestamp) {
+            if (!state) return;
+            if (!state.lastTime) state.lastTime = timestamp;
+            let dt = (timestamp - state.lastTime) / 1000;
+            if (dt > 0.1) dt = 0.1;
+            state.lastTime = timestamp;
+
+            updatePhysics(dt);
+            draw();
+
+            if (state.status === 'flying') {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+    </script>
+</body>
+
+</html>
