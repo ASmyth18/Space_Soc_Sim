@@ -317,6 +317,20 @@
             letter-spacing: 6px;
         }
 
+        #telemetry-notice {
+            display: none;
+            margin-top: 18px;
+            padding: 10px 14px;
+            border: 1px solid #332222;
+            background: rgba(30, 10, 10, 0.6);
+            color: #777;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            max-width: 600px;
+        }
+
+
         #launch-btn {
             font-family: 'VT323', monospace;
             font-size: 28px;
@@ -512,6 +526,12 @@
             <div class="briefing-divider"></div>
             <div id="briefing-text"></div>
             <button id="launch-btn" onclick="beginDescent()">▸ INITIATE DESCENT ◂</button>
+        </div>
+        <div id="telemetry-notice">
+        ⚠ TELEMETRY NOTICE<br>
+        This exercise records anonymous flight telemetry and control inputs
+        for SpaceSoc's rocketry project. No name, email address, or other
+        identifying information is collected.
         </div>
         <div class="subliminal-msg" id="subliminal">DO NOT TRUST THE INSTRUMENTS</div>
     </div>
@@ -943,33 +963,167 @@
             resetSabotage();
             requestAnimationFrame(gameLoop);
         }
+// ═══════════════════════════════════════════════════════
+//  TELEMETRY SYSTEM
+// ═══════════════════════════════════════════════════════
 
-        // ╔══════════════════════════════════════════════════════╗
-        // ║  PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL BELOW    ║
-        // ╚══════════════════════════════════════════════════════╝
-        const TELEMETRY_ENDPOINT = 'YOUR_APPS_SCRIPT_URL_HERE';
+// Google Apps Web Script
+const TELEMETRY_ENDPOINT = 'SCRIPT_URL';
 
-        let operatorName = 'UNKNOWN';
-        let telemetryStatus = ''; // '', 'sending', 'sent', 'failed'
+// A random ID identifies this flight without identifying the operator.
+const SESSION_ID = crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-        function exportTelemetry() {
-            if (TELEMETRY_ENDPOINT === 'YOUR_APPS_SCRIPT_URL_HERE') {
-                // Fallback: no endpoint configured, download CSV locally
-                telemetryStatus = 'sent';
-                let csv = "timestamp,x,y,vx,vy,angle,angular_velocity,throttle,gimbal_angle,fuel\n";
-                telemetryLog.forEach(row => { csv += row.join(',') + "\n"; });
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `telemetry_${Date.now()}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                return;
-            }
+const TELEMETRY_BATCH_INTERVAL = 5.0;
 
+let telemetryLog = [];
+let telemetryBuffer = [];
+let telemetryUploadInProgress = false;
+let telemetryLastUpload = 0;
+
+let telemetryStatus = '';
+// '', 'sending', 'sent', 'failed'
+
+function recordTelemetry() {
+    telemetryBuffer.push({
+        session_id: SESSION_ID,
+        t: Number(state.timestamp.toFixed(3)),
+        x: Number(state.x.toFixed(3)),
+        y: Number(state.y.toFixed(3)),
+        vx: Number(state.vx.toFixed(3)),
+        vy: Number(state.vy.toFixed(3)),
+        ax: Number(state.ax.toFixed(3)),
+        ay: Number(state.ay.toFixed(3)),
+        angle: Number(state.angle.toFixed(5)),
+        omega: Number(state.omega.toFixed(5)),
+        angular_acceleration: Number(state.angularAcceleration.toFixed(5)),
+        throttle: Number(state.throttle.toFixed(4)),
+        gimbal: Number(state.gimbal.toFixed(5)),
+        fuel: Number(state.fuel.toFixed(2)),
+        wind_force: Number(state.windForce.toFixed(2))
+    });
+
+    // Keep a complete copy locally for the final run summary.
+    telemetryLog.push(telemetryBuffer[telemetryBuffer.length - 1]);
+}
+
+async function uploadTelemetryBatch(force = false) {
+    if (TELEMETRY_ENDPOINT === 'YOUR_APPS_SCRIPT_URL_HERE') {
+        return;
+    }
+
+    if (telemetryUploadInProgress || telemetryBuffer.length === 0) {
+        return;
+    }
+
+    if (!force && state.timestamp - telemetryLastUpload < TELEMETRY_BATCH_INTERVAL) {
+        return;
+    }
+
+    telemetryUploadInProgress = true;
+    telemetryStatus = 'sending';
+
+    // Take the current samples out of the active buffer.
+    const batch = telemetryBuffer.splice(0, telemetryBuffer.length);
+
+    const payload = {
+        type: 'telemetry',
+        session_id: SESSION_ID,
+        samples: batch
+    };
+
+    try {
+        await fetch(TELEMETRY_ENDPOINT, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: JSON.stringify(payload),
+            keepalive: true
+        });
+
+        telemetryLastUpload = state.timestamp;
+        telemetryStatus = 'sent';
+
+    } catch (error) {
+        console.error('Telemetry upload failed:', error);
+
+        // Put failed samples back into the buffer.
+        telemetryBuffer.unshift(...batch);
+
+        telemetryStatus = 'failed';
+
+    } finally {
+        telemetryUploadInProgress = false;
+    }
+}
+
+
+async function uploadRunSummary() {
+    if (TELEMETRY_ENDPOINT === 'YOUR_APPS_SCRIPT_URL_HERE') {
+        telemetryStatus = 'sent';
+        return;
+    }
+
+    telemetryStatus = 'sending';
+
+    const payload = {
+        type: 'run',
+        session_id: SESSION_ID,
+
+        outcome: state.status,
+
+        flight_time: Number(state.timestamp.toFixed(3)),
+
+        final_x: Number(state.x.toFixed(3)),
+        final_y: Number(state.y.toFixed(3)),
+
+        final_vx: Number(state.vx.toFixed(3)),
+        final_vy: Number(state.vy.toFixed(3)),
+
+        final_angle: Number(state.angle.toFixed(5)),
+        final_omega: Number(state.omega.toFixed(5)),
+
+        fuel_remaining: Number(state.fuel.toFixed(2)),
+        fuel_consumed: Number(
+            (INITIAL_FUEL - state.fuel).toFixed(2)
+        ),
+
+        telemetry_samples: telemetryLog.length,
+
+        completed_at: new Date().toISOString()
+    };
+
+    try {
+        await fetch(TELEMETRY_ENDPOINT, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: JSON.stringify(payload),
+            keepalive: true
+        });
+
+        telemetryStatus = 'sent';
+
+    } catch (error) {
+        console.error('Run summary upload failed:', error);
+        telemetryStatus = 'failed';
+    }
+}
+
+
+async function flushTelemetry() {
+    await uploadTelemetryBatch(true);
+
+    // Give the browser a chance to transmit the final batch.
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    await uploadRunSummary();
+}
             telemetryStatus = 'sending';
 
             const payload = {
@@ -1030,9 +1184,19 @@
             let totalMass = DRY_MASS + state.fuel;
 
             // 3. Environment (Perturbations) — with sabotage gust multiplier
-            let windBase = Math.sin(state.timestamp * 0.5) * 20000;
-            let windGust = (Math.random() - 0.5) * 10000;
-            state.windForce = (windBase + windGust) * (state.y / 1000) * sabotage.gustMultiplier;
+            const t = state.timestamp;
+            
+            const windBase =
+                14000 * Math.sin(t * 0.45) +
+                 7000 * Math.sin(t * 1.17 + 1.8) +
+                 3000 * Math.sin(t * 2.71 + 0.4);
+            
+            const altitudeFactor = Math.max(0, Math.min(1, state.y / 900));
+            
+            state.windForce =
+                windBase *
+                altitudeFactor *
+                sabotage.gustMultiplier;
 
             // 4. Rigid Body Kinematics & TVC
             let momentOfInertia = (totalMass * Math.pow(ROCKET_HEIGHT, 2)) / 12;
@@ -1047,13 +1211,18 @@
             let dragTorque = -state.omega * 100000;
             angularAccel += dragTorque / momentOfInertia;
 
+            state.angularAcceleration = angularAccel;
+            
             state.omega += angularAccel * dt;
             state.angle += state.omega * dt;
 
             // 5. Linear Kinematics
-            let ax = (thrustX + state.windForce) / totalMass;
-            let ay = (thrustY / totalMass) - GRAVITY;
-
+            const ax = (thrustX + state.windForce) / totalMass;
+            const ay = (thrustY / totalMass) - GRAVITY;
+            
+            state.ax = ax;
+            state.ay = ay;
+            
             state.vx += ax * dt;
             state.vy += ay * dt;
             state.x += state.vx * dt;
@@ -1064,34 +1233,44 @@
 
             // 7. Telemetry Logging (25Hz) — ALWAYS uses TRUE values
             timeSinceLastTelemetry += dt;
+            
             if (timeSinceLastTelemetry >= TELEMETRY_INTERVAL) {
-                telemetryLog.push([
-                    state.timestamp.toFixed(3),
-                    state.x.toFixed(2), state.y.toFixed(2),
-                    state.vx.toFixed(2), state.vy.toFixed(2),
-                    state.angle.toFixed(4), state.omega.toFixed(4),
-                    state.throttle.toFixed(3), state.gimbal.toFixed(4),
-                    state.fuel.toFixed(1)
-                ]);
+                recordTelemetry();
                 timeSinceLastTelemetry = 0;
             }
+            
+            // Upload approximately every five seconds.
+            uploadTelemetryBatch();
 
             // 8. Ground Collision
-            if (state.y <= 0) {
+            if (state.y <= 0 && state.status === 'flying') {
+            
                 state.y = 0;
+            
                 let isUpright = Math.abs(state.angle) < 0.15;
                 let isSlowVertical = state.vy >= -5.0;
                 let isSlowHorizontal = Math.abs(state.vx) <= 3.0;
                 let isOnPad = Math.abs(state.x) <= 30;
-
-                if (isUpright && isSlowVertical && isSlowHorizontal && isOnPad) state.status = 'landed';
-                else state.status = 'crashed';
-
-                state.vy = 0; state.vx = 0; state.throttle = 0;
-                state.omega = 0; state.gimbal = 0;
-
-                // Export data on run completion
-                exportTelemetry();
+            
+                if (
+                    isUpright &&
+                    isSlowVertical &&
+                    isSlowHorizontal &&
+                    isOnPad
+                ) {
+                    state.status = 'landed';
+                } else {
+                    state.status = 'crashed';
+                }
+            
+                state.vy = 0;
+                state.vx = 0;
+                state.throttle = 0;
+                state.omega = 0;
+                state.gimbal = 0;
+            
+                recordTelemetry();
+                flushTelemetry();
             }
         }
 
