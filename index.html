@@ -1118,39 +1118,6 @@ async function flushTelemetry() {
 
     await uploadRunSummary();
 }
-            telemetryStatus = 'sending';
-
-            const payload = {
-                operator: operatorName,
-                outcome: state.status,
-                flight_time: state.timestamp.toFixed(2),
-                final_x: state.x.toFixed(2),
-                final_vy: state.vy.toFixed(2),
-                fuel_remaining: state.fuel.toFixed(1),
-                date: new Date().toISOString(),
-                telemetry: telemetryLog.map(row => ({
-                    t: row[0], x: row[1], y: row[2],
-                    vx: row[3], vy: row[4],
-                    angle: row[5], omega: row[6],
-                    throttle: row[7], gimbal: row[8],
-                    fuel: row[9]
-                }))
-            };
-
-            fetch(TELEMETRY_ENDPOINT, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(payload)
-            })
-                .then(() => {
-                    telemetryStatus = 'sent';
-                })
-                .catch(err => {
-                    console.error('Telemetry upload failed:', err);
-                    telemetryStatus = 'failed';
-                });
-        }
 
         function updatePhysics(dt) {
             if (state.status !== 'flying') return;
